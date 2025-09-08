@@ -1,0 +1,10 @@
+Package: bgmeter
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person("Gabriele", "Sales", , "gabriele.sales@unipd.it", role = c("aut", "cre"))
+Description: Take periodic background measurements.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
