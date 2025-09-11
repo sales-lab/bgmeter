@@ -4,7 +4,7 @@
 \alias{bgmeter_start}
 \title{Start taking repeated measures.}
 \usage{
-bgmeter_start(func, period, filename)
+bgmeter_start(func, period, filename, log = NULL)
 }
 \arguments{
 \item{func}{Callback to invoke for the measures. It should return a list of metrics.}
@@ -12,6 +12,8 @@ bgmeter_start(func, period, filename)
 \item{period}{The time interval to wait between measurements, in seconds.}
 
 \item{filename}{Measures will be appended to this file, using the JSONL format.}
+
+\item{log}{Log the output of the background process to this file. Disabled if \code{NULL}.}
 }
 \value{
 A \code{BgMeter} instance.

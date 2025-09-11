@@ -45,6 +45,7 @@ BgMeter <- R6Class(
 #' @param func Callback to invoke for the measures. It should return a list of metrics.
 #' @param period The time interval to wait between measurements, in seconds.
 #' @param filename Measures will be appended to this file, using the JSONL format.
+#' @param log Log the output of the background process to this file. Disabled if `NULL`.
 #' @return A `BgMeter` instance.
 #'
 #' @examples
@@ -56,7 +57,7 @@ BgMeter <- R6Class(
 #' unlink(filename)
 #'
 #' @export
-bgmeter_start <- function(func, period, filename) {
+bgmeter_start <- function(func, period, filename, log = NULL) {
   proc <- callr::r_bg(
     function(func, period, filename) {
       tryCatch(
@@ -75,7 +76,9 @@ bgmeter_start <- function(func, period, filename) {
         }
       )
     },
-    args = list(func, period, filename)
+    args = list(func, period, filename),
+    stdout = if (is.null(log)) "|" else log,
+    stderr = if (is.null(log)) "|" else log
   )
 
   BgMeter$new(proc)
