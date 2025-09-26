@@ -23,13 +23,7 @@ BgMeter <- R6Class(
         return("stopped")
       }
 
-      self$proc$interrupt()
-      self$proc$wait(timeout = 1000L)
-
-      if (self$proc$is_alive()) {
-        self$proc$kill()
-      }
-
+      kill_proc(self$proc)
       if (self$proc$get_exit_status() != 0) {
         return("failed")
       }
@@ -40,12 +34,22 @@ BgMeter <- R6Class(
   )
 )
 
+kill_proc <- function(proc) {
+  proc$interrupt()
+  proc$wait(timeout = 1000L)
+
+  if (proc$is_alive()) {
+    proc$kill()
+  }
+}
+
 #' Start taking repeated measures.
 #'
 #' @param func Callback to invoke for the measures. It should return a list of metrics.
 #' @param period The time interval to wait between measurements, in seconds.
 #' @param filename Measures will be appended to this file, using the JSONL format.
 #' @param log Log the output of the background process to this file. Disabled if `NULL`.
+#' @param startup_timeout Stop waiting for the background process startup after this timeout, in milliseconds.
 #' @return A `BgMeter` instance.
 #'
 #' @examples
@@ -57,9 +61,13 @@ BgMeter <- R6Class(
 #' unlink(filename)
 #'
 #' @export
-bgmeter_start <- function(func, period, filename, log = NULL) {
+bgmeter_start <- function(func, period, filename, log = NULL, startup_timeout = 2000L) {
+  witness <- fs::file_temp(pattern = "bgmeter", ext = "startup")
+  
   proc <- callr::r_bg(
-    function(func, period, filename) {
+    function(func, period, filename, witness) {
+      fs::file_create(witness)
+    
       tryCatch(
         {
           con <- file(filename, "at")
@@ -81,7 +89,51 @@ bgmeter_start <- function(func, period, filename, log = NULL) {
     stderr = if (is.null(log)) "|" else log
   )
 
-  BgMeter$new(proc)
+  good <- FALSE
+  delay <- 100L
+  for (i in seq_len(startup_timeout %/% delay)) {
+    proc$wait(timeout = delay)
+
+    started <- fs::file_exists(witness)
+    if (started) {
+      fs::file_delete(witness)
+      good <- TRUE
+      break
+    }
+        
+    res <- proc$get_exit_status()
+    if (!is.null(res)) {
+      if (res == 0) {
+        good <- TRUE
+        break
+      } else if (!is.null(res)) {
+        msg <- c(
+          "The meter failed.",
+          "x" = paste0("The background process failed with exit code: ", res)
+        )
+        if (!is.null(log)) {
+          msg <- c(msg, "i" = "Check the log file for any error message.")
+        }
+      
+        cli_abort(msg)
+      }
+    }
+  }
+
+  if (good) {
+    return(BgMeter$new(proc))
+  }
+
+  kill_proc(proc)
+  
+  msg <- c(
+    "The meter failed.",
+    "x" = "The background process did not start properly."
+  )
+  if (!is.null(log)) {
+    msg <- c(msg, "i" = "Check the log file for any error message.")
+  }
+  cli_abort(msg)
 }
 
 #' Stop taking measurements.
