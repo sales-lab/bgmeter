@@ -13,23 +13,21 @@ BgMeter <- R6Class(
     #' Create a new meter object.
     #' @param proc The handle of a background process.
     #' @return A new `BgMeter` object.
-    initialize = function(proc = NA) {
+    initialize = function(proc = NULL) {
       self$proc <- proc
     },
     #' @description
     #' Stop the background process and invalidate this object.
     close = function() {
       if (is.null(self$proc)) {
-        return("stopped")
+        return(0)
       }
 
       kill_proc(self$proc)
-      if (self$proc$get_exit_status() != 0) {
-        return("failed")
-      }
+      res <- self$proc$get_exit_status()
 
       self$proc <- NULL
-      "ok"
+      return(res)
     }
   )
 )
@@ -84,7 +82,7 @@ bgmeter_start <- function(func, period, filename, log = NULL, startup_timeout = 
         }
       )
     },
-    args = list(func, period, filename),
+    args = list(func, period, filename, witness),
     stdout = if (is.null(log)) "|" else log,
     stderr = if (is.null(log)) "|" else log
   )
@@ -106,10 +104,11 @@ bgmeter_start <- function(func, period, filename, log = NULL, startup_timeout = 
       if (res == 0) {
         good <- TRUE
         break
-      } else if (!is.null(res)) {
+      } else {
         msg <- c(
           "The meter failed.",
-          "x" = paste0("The background process failed with exit code: ", res)
+          "x" = "The background process failed.",
+          "i" = paste0("Exit code: ", res)
         )
         if (!is.null(log)) {
           msg <- c(msg, "i" = "Check the log file for any error message.")
@@ -143,16 +142,12 @@ bgmeter_start <- function(func, period, filename, log = NULL, startup_timeout = 
 #' @importFrom cli cli_abort
 #' @export
 bgmeter_stop <- function(meter) {
-  switch(
-    meter$close(),
-    ok = NULL,
-    stopped = cli_abort(c(
-      "The meter is not active.",
-      "i" = "It looks like the meter has already been stopped."
-    )),
-    failed = cli_abort(c(
+  res <- meter$close()
+  if (res != 0) {
+    cli_abort(c(
       "The meter failed.",
-      "x" = "The background process stopped with an unspecified error."
+      "x" = "The background process failed.",
+      "i" = paste0("Exit code: ", res)
     ))
-  )
+  }
 }

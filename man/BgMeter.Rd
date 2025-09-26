@@ -29,7 +29,7 @@ A monitor object.
 \subsection{Method \code{new()}}{
 Create a new meter object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{BgMeter$new(proc = NA)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{BgMeter$new(proc = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
