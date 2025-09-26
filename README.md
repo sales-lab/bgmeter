@@ -42,12 +42,12 @@ Sys.sleep(2L)
 
 # Stop the background measurement process.
 bgmeter_stop(meter)
-#> NULL
 
 # Load the metrics and print them.
 metrics <- readLines(filename)
 print(metrics)
 #> [1] "{\"cpu\":[75],\"memory\":[1024]}" "{\"cpu\":[75],\"memory\":[1024]}"
+#> [3] "{\"cpu\":[75],\"memory\":[1024]}"
 
 # Clean up the temporary file.
 unlink(filename)
